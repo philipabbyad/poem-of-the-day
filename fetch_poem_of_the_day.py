@@ -64,26 +64,26 @@ def slugify(title: str) -> str:
     return slug[:60] or "poem"
 
 
-def save_poem(item: dict, out_dir: Path) -> Path:
+def save_poem(item: dict, out_dir: Path) -> tuple[Path, bool]:
     out_dir.mkdir(parents=True, exist_ok=True)
     date_str = datetime.now().strftime("%Y-%m-%d")
     filename = f"{date_str}_{slugify(item['title'])}.txt"
     path = out_dir / filename
 
     if path.exists():
-        return path  # already downloaded today, don't overwrite
+        return path, False  # already downloaded today, don't overwrite
 
     body = f"{item['title']}\n{item['link']}\n{item['pub_date']}\n\n{item['poem']}\n"
     path.write_text(body, encoding="utf-8")
-    return path
+    return path, True
 
 
 def main() -> int:
     try:
         xml_bytes = fetch_feed(FEED_URL)
         item = get_latest_item(xml_bytes)
-        path = save_poem(item, OUTPUT_DIR)
-        print(f"Saved: {path}")
+        path, wrote = save_poem(item, OUTPUT_DIR)
+        print(f"Saved: {path}" if wrote else f"Already saved today: {path}")
         return 0
     except Exception as exc:
         print(f"Failed to fetch/save poem: {exc}", file=sys.stderr)
