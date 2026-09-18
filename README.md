@@ -22,10 +22,38 @@ Running the script more than once on the same day is safe — if a file for toda
 
 To save poems somewhere else, edit `OUTPUT_DIR` at the top of the script.
 
+## Displaying the poem on demand
+
+`show_poem.sh` prints today's saved poem to your terminal, exactly as it was
+saved (no reformatting or re-wrapping). If today's poem hasn't been fetched
+yet — for example if you run it before the 7 AM timer — it fetches it on the
+spot (safe to do; `fetch_poem_of_the_day.py` is idempotent per day) and falls
+back to showing the most recent poem on file if that isn't possible (e.g. no
+internet access).
+
+To install it as a `poem` command:
+
+```bash
+chmod +x show_poem.sh
+ln -s "$(pwd)/show_poem.sh" ~/.local/bin/poem
+```
+
+(`~/.local/bin` is already on `PATH` by default on most systems; adjust the
+symlink target if you keep the repo somewhere other than where you ran this
+from.)
+
+Then just run:
+
+```bash
+poem
+```
+
 ## Requirements
 
 - Python 3
 - Internet access (to reach `poetryfoundation.org`)
+- Bash and standard coreutils (`ls`/`sort`/`cat`/`timeout`) if you also want
+  to use `show_poem.sh` to display poems on demand
 
 ## Running it automatically every day
 
