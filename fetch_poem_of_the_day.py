@@ -4,6 +4,8 @@
 import html
 import re
 import sys
+import time
+import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime
@@ -15,11 +17,24 @@ CONTENT_NS = "{http://purl.org/rss/1.0/modules/content/}encoded"
 # Where poems get saved. Change this if you want a different folder.
 OUTPUT_DIR = Path.home() / "poems" / "poem-of-the-day"
 
+# Retry knobs for the catch-up run that fires right after a scheduled wake,
+# when the network may not have reconnected yet.
+FETCH_RETRIES = 5
+FETCH_RETRY_DELAY_SECONDS = 15
+
 
 def fetch_feed(url: str) -> bytes:
     req = urllib.request.Request(url, headers={"User-Agent": "poem-of-day-script/1.0"})
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        return resp.read()
+    last_error: Exception | None = None
+    for attempt in range(1, FETCH_RETRIES + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                return resp.read()
+        except (urllib.error.URLError, OSError) as exc:
+            last_error = exc
+            if attempt < FETCH_RETRIES:
+                time.sleep(FETCH_RETRY_DELAY_SECONDS)
+    raise last_error
 
 
 def html_to_text(raw_html: str) -> str:
