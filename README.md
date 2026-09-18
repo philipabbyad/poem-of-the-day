@@ -88,11 +88,20 @@ This is a good option if you'd rather manage the schedule with `systemctl`/`jour
    ```ini
    [Unit]
    Description=Fetch Poetry Foundation poem of the day
+   StartLimitIntervalSec=30min
+   StartLimitBurst=5
 
    [Service]
    Type=oneshot
    ExecStart=/usr/bin/python3 /home/phil/dev/poem-of-the-day/fetch_poem_of_the_day.py
+   Restart=on-failure
+   RestartSec=2min
    ```
+
+   `Restart=on-failure`/`RestartSec` retry the job a few times (capped by
+   `StartLimitBurst`) if it fails — on top of the retries `fetch_poem_of_the_day.py`
+   already does internally for a catch-up run that fires before the network
+   has reconnected.
 
 2. Create `~/.config/systemd/user/poem-of-the-day.timer`:
 
