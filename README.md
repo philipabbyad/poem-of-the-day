@@ -16,7 +16,7 @@ Each run fetches the latest poem from the Poetry Foundation RSS feed and saves i
 ~/poems/poem-of-the-day/YYYY-MM-DD_poem-title-slug.txt
 ```
 
-Each file contains the title, a link to the poem, the publish date, and the poem text.
+Each file contains the publish date, a link to the poem, the title, the author (when the feed attributes one), and the poem text, in that order.
 
 Running the script more than once on the same day is safe — if a file for today already exists, it's left alone and the script exits without overwriting it.
 
