@@ -39,20 +39,36 @@ def html_to_text(raw_html: str) -> str:
     return text
 
 
+def split_title_author(raw_title: str) -> tuple[str, str]:
+    """Split a feed title like "Poem Name by Author" into (title, author).
+
+    Splits on the *last* " by " so poem titles that themselves contain
+    "by" (e.g. "Stopping by Woods on a Snowy Evening") aren't cut short.
+    Returns (raw_title, "") when no " by " is present at all.
+    """
+    if " by " in raw_title:
+        title, author = raw_title.rsplit(" by ", 1)
+        return title.strip(), author.strip()
+    return raw_title.strip(), ""
+
+
 def get_latest_item(xml_bytes: bytes) -> dict:
     root = ET.fromstring(xml_bytes)
     item = root.find("./channel/item")  # first item = most recent
     if item is None:
         raise RuntimeError("No <item> found in feed")
 
-    title = item.findtext("title") or "Untitled"
+    raw_title = (item.findtext("title") or "Untitled").strip()
+    title, author = split_title_author(raw_title)
     link = item.findtext("link") or ""
     pub_date = item.findtext("pubDate") or ""
     content_el = item.find(CONTENT_NS)
     raw_html = content_el.text if content_el is not None else ""
 
     return {
-        "title": title.strip(),
+        "raw_title": raw_title,  # unchanged combined string, used only for the filename slug
+        "title": title,
+        "author": author,
         "link": link.strip(),
         "pub_date": pub_date.strip(),
         "poem": html_to_text(raw_html or ""),
@@ -67,13 +83,14 @@ def slugify(title: str) -> str:
 def save_poem(item: dict, out_dir: Path) -> tuple[Path, bool]:
     out_dir.mkdir(parents=True, exist_ok=True)
     date_str = datetime.now().strftime("%Y-%m-%d")
-    filename = f"{date_str}_{slugify(item['title'])}.txt"
+    filename = f"{date_str}_{slugify(item['raw_title'])}.txt"
     path = out_dir / filename
 
     if path.exists():
         return path, False  # already downloaded today, don't overwrite
 
-    body = f"{item['title']}\n{item['link']}\n{item['pub_date']}\n\n{item['poem']}\n"
+    title_block = f"{item['title']}\nby {item['author']}" if item["author"] else item["title"]
+    body = f"{item['pub_date']}\n{item['link']}\n\n{title_block}\n\n{item['poem']}\n"
     path.write_text(body, encoding="utf-8")
     return path, True
 
